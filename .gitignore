@@ -1,0 +1,6 @@
+__pycache__/*
+data/*
+indexes/*
+model/*
+model_wegene/*
+model_LE/*
