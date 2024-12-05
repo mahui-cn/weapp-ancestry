@@ -5,14 +5,14 @@ import numpy as np
 import copy
 
 
-# 祖源模型类
+# 祖源模型类，存放祖源模型名称，描述，祖源成分。中英文
 class AdmixModel:
 
     # 祖源模型数据的相对路径
-    __admixModelPath = ""
+    __admixModelPath: str = ""
 
     # 祖源模型信息
-    __admixModelInfo = [
+    __admixModelInfo: list = [
         {
             "key": "wbbc",
             "name": "Westlake BioBank for Chinese K4",
