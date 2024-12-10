@@ -56,18 +56,18 @@ class AdmixModel:
     def AdmixModelInfo(self):
         return self.__admixModelInfo
 
-    def __init__(self, admixModelPath="model"):
+    def __init__(self, admixModelPath: str = "model"):
         self.__admixModelPath = admixModelPath
 
     # 根据祖源模型名字获取模型信息，深拷贝不修改源对象
-    def get_model_info(self, model_name):
+    def get_model_info(self, model_name: str) -> dict:
         for model in self.__admixModelInfo:
             if model["key"].lower() == model_name.lower():
                 return copy.deepcopy(model)
         raise Exception("不支持祖源模型：" + model_name)
 
     # 获取祖源模型的SNP和Frequency数据
-    def get_model_data(self, model_name):
+    def get_model_data(self, model_name: str) -> tuple:
         # 祖源模型数据源文件
         snp_file_name = os.path.join(self.__admixModelPath, model_name + ".alleles")
         frequency_file_name = os.path.join(self.__admixModelPath, model_name + ".F")

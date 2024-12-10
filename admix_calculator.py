@@ -8,7 +8,9 @@ from admix_model import *
 class AdmixCalculator:
 
     # 计算用户每个alleles等位基因相对于祖源模型的major和minor基因型的突变总次数
-    def __get_geno_stat(self, user_genome, rsid, major_geno, minor_geno):
+    def __get_geno_stat(
+        self, user_genome: dict, rsid: list, major_geno: list, minor_geno: list
+    ) -> tuple:
 
         major_geno_count = []
         minor_geno_count = []
@@ -58,7 +60,13 @@ class AdmixCalculator:
         )
 
     # 损失函数
-    def __loss_func(self, major_geno_count, minor_geno_count, frequency, admix_ratio):
+    def __loss_func(
+        self,
+        major_geno_count: list,
+        minor_geno_count: list,
+        frequency: list,
+        admix_ratio: list,
+    ) -> float:
         # 计算用户所有等位基因发生major和minor突变频率的加权平均值
         major_frq_mean = np.dot(frequency, admix_ratio)
         minor_frq_mean = np.dot(1 - frequency, admix_ratio)
@@ -75,69 +83,68 @@ class AdmixCalculator:
         return -(major_pr + minor_pr)
 
     # 根据用户基因数据，祖源模型，使用极大似然估计计算用户的祖源成分
-    def calc_admix(self, user_genome, admix_model_name, opt_tol=1e-4):
-        try:
-            # 获取指定的祖源模型信息
-            admixModel = AdmixModel()
-            admix_info = admixModel.get_model_info(admix_model_name)
-            admix_count = len(admix_info["admix"])
-            if admix_count < 1:
-                raise Exception("祖源模型“{}”没有人群成分".format(admix_model_name))
+    def calc_admix(
+        self, user_genome: dict, admix_model_name: str, opt_tol: float = 1e-4
+    ) -> dict:
+        # 获取指定的祖源模型信息
+        admixModel = AdmixModel()
+        admix_info = admixModel.get_model_info(admix_model_name)
+        admix_count = len(admix_info["admix"])
+        if admix_count < 1:
+            raise Exception("祖源模型“{}”没有人群成分".format(admix_model_name))
 
-            # 获取指定祖源模型的rsid, alleles数据源
-            rsid, major_geno, minor_geno, frequency = admixModel.get_model_data(
-                admix_model_name
-            )
+        # 获取指定祖源模型的rsid, alleles数据源
+        rsid, major_geno, minor_geno, frequency = admixModel.get_model_data(
+            admix_model_name
+        )
 
-            # 祖源模型的SNP数量
-            snp_count = len(rsid)
+        # 祖源模型的SNP数量
+        snp_count = len(rsid)
 
-            if admix_count != len(frequency[0]):
-                raise Exception(
-                    "祖源模型“{}”的信息文件和数据文件的人群成分数量不一致".format(
-                        admix_model_name
-                    )
+        if admix_count != len(frequency[0]):
+            raise Exception(
+                "祖源模型“{}”的信息文件和数据文件的人群成分数量不一致".format(
+                    admix_model_name
                 )
-
-            # 计算用户基因相对于祖源模型的突变情况
-            major_geno_count, minor_geno_count, user_match_ratio, model_match_ratio = (
-                self.__get_geno_stat(user_genome, rsid, major_geno, minor_geno)
             )
 
-            # 损失函数的参数初始值
-            initial_guess = np.ones(admix_count) / admix_count
+        # 计算用户基因相对于祖源模型的突变情况
+        major_geno_count, minor_geno_count, user_match_ratio, model_match_ratio = (
+            self.__get_geno_stat(user_genome, rsid, major_geno, minor_geno)
+        )
 
-            # 损失函数的参数约束条件
-            bounds = tuple((0, 1) for i in range(admix_count))
-            constraints = {"type": "eq", "fun": lambda ratio: np.sum(ratio) - 1}
+        # 损失函数的参数初始值
+        initial_guess = np.ones(admix_count) / admix_count
 
-            # 计算用户祖源成分的最优值
-            res = optimize.minimize(
-                fun=lambda ratio: self.__loss_func(
-                    major_geno_count, minor_geno_count, frequency, ratio
-                ),
-                x0=initial_guess,
-                bounds=bounds,
-                constraints=constraints,
-                tol=opt_tol,
-            )
+        # 损失函数的参数约束条件
+        bounds = tuple((0, 1) for i in range(admix_count))
+        constraints = {"type": "eq", "fun": lambda ratio: np.sum(ratio) - 1}
 
-            if res.success:
-                admix_ratio = res.x
-            else:
-                admix_ratio = np.zeros(admix_count)
+        # 计算用户祖源成分的最优值
+        res = optimize.minimize(
+            fun=lambda ratio: self.__loss_func(
+                major_geno_count, minor_geno_count, frequency, ratio
+            ),
+            x0=initial_guess,
+            bounds=bounds,
+            constraints=constraints,
+            tol=opt_tol,
+        )
 
-            # 用户祖源成分值写入祖源模型
-            for i, admix in enumerate(admix_info["admix"]):
-                admix["ratio"] = admix_ratio[i]
+        if res.success:
+            admix_ratio = res.x
+        else:
+            admix_ratio = np.zeros(admix_count)
 
-            admix_info["snp_count"] = snp_count
-            admix_info["user_match_ratio"] = user_match_ratio
-            admix_info["model_match_ratio"] = model_match_ratio
+        # 用户祖源成分值写入祖源模型
+        for i, admix in enumerate(admix_info["admix"]):
+            admix["ratio"] = admix_ratio[i]
 
-            # 对祖源成分比例降序排序
-            admix_info["admix"].sort(key=lambda admix: admix["ratio"], reverse=True)
+        admix_info["snp_count"] = snp_count
+        admix_info["user_match_ratio"] = user_match_ratio
+        admix_info["model_match_ratio"] = model_match_ratio
 
-            return admix_info
-        except Exception as e:
-            raise e
+        # 对祖源成分比例降序排序
+        admix_info["admix"].sort(key=lambda admix: admix["ratio"], reverse=True)
+
+        return admix_info
