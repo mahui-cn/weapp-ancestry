@@ -71,7 +71,7 @@ class AdmixCalculator:
         major_frq_mean = np.dot(frequency, admix_ratio)
         minor_frq_mean = np.dot(1 - frequency, admix_ratio)
 
-        # 计算用户所有等位基因发生major和minor突变的联合概率
+        # 计算用户所有等位基因发生major和minor突变的联合概率，取对数，连乘变连和
         major_pr = np.dot(
             major_geno_count, np.log(np.where(major_frq_mean > 0, major_frq_mean, 1))
         )
