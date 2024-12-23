@@ -86,7 +86,7 @@ def is_wegene_format(format_str):
 # 从TSV格式文件加载基因数据
 def get_genome_from_tsv(tsvFileName):
     user_genome = {}
-    chrom_list = [str(chr) for chr in range(1, 23)]
+    chrom_list = {str(chr) for chr in range(1, 23)}
     with open(tsvFileName, "r", encoding="utf-8") as tsvFile:
         for tsvLine in tsvFile.readlines():
             if len(tsvLine) > 0 and not tsvLine.startswith(("#", "\n", "\t", '"')):
@@ -94,9 +94,13 @@ def get_genome_from_tsv(tsvFileName):
                 if (
                     len(tsvLineArray) == 4
                     and tsvLineArray[1] in chrom_list
-                    and tsvLineArray[3][0] in ["A", "T", "G", "C"]
+                    and tsvLineArray[3][0] in {"A", "T", "G", "C"}
                 ):
-                    user_genome[tsvLineArray[0]] = tsvLineArray[3].strip()
+                    user_genome[tsvLineArray[0]] = {
+                        "chromosome": tsvLineArray[1].strip(),
+                        "position": tsvLineArray[2].strip(),
+                        "genotype": tsvLineArray[3].strip(),
+                    }
 
     return user_genome
 
