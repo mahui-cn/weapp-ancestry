@@ -7,20 +7,20 @@ from admix_model import *
 # 祖源计算器类
 class AdmixCalculator:
 
-    # 计算用户每个alleles等位基因相对于祖源模型的major和minor基因型的突变总次数
+    # 计算用户每个alleles等位基因相对于祖源模型的ref和alt基因型的突变总次数
     def __get_geno_stat(
-        self, user_genome: dict, rsid: list, major_geno: list, minor_geno: list
+        self, user_genome: dict, rsid: list, ref_allele: list, alt_allele: list
     ) -> tuple:
 
-        major_geno_count = []
-        minor_geno_count = []
+        ref_allele_count = []
+        alt_allele_count = []
 
         # allele点位匹配计数
         match_count = 0
 
         for i in range(len(rsid)):
-            major_geno_count.append(0)
-            minor_geno_count.append(0)
+            ref_allele_count.append(0)
+            alt_allele_count.append(0)
             if rsid[i] in user_genome:
                 match_count += 1
                 user_geno = user_genome.get(rsid[i])
@@ -34,17 +34,17 @@ class AdmixCalculator:
                     allele1 = "-"
                     allele2 = "-"
 
-                if allele1 == major_geno[i]:
-                    major_geno_count[i] += 1
+                if allele1 == ref_allele[i]:
+                    ref_allele_count[i] += 1
 
-                if allele2 == major_geno[i]:
-                    major_geno_count[i] += 1
+                if allele2 == ref_allele[i]:
+                    ref_allele_count[i] += 1
 
-                if allele1 == minor_geno[i]:
-                    minor_geno_count[i] += 1
+                if allele1 == alt_allele[i]:
+                    alt_allele_count[i] += 1
 
-                if allele2 == minor_geno[i]:
-                    minor_geno_count[i] += 1
+                if allele2 == alt_allele[i]:
+                    alt_allele_count[i] += 1
 
         # 匹配的allele点位在祖源模型中的占比
         model_match_ratio = match_count / len(rsid) if len(rsid) > 0 else 0
@@ -53,8 +53,8 @@ class AdmixCalculator:
         user_match_ratio = match_count / len(user_genome) if len(user_genome) > 0 else 0
 
         return (
-            np.array(major_geno_count),
-            np.array(minor_geno_count),
+            np.array(ref_allele_count),
+            np.array(alt_allele_count),
             model_match_ratio,
             user_match_ratio,
         )
@@ -62,25 +62,25 @@ class AdmixCalculator:
     # 损失函数
     def __loss_func(
         self,
-        major_geno_count: list,
-        minor_geno_count: list,
+        ref_allele_count: list,
+        alt_allele_count: list,
         frequency: list,
         admix_ratio: list,
     ) -> float:
-        # 计算用户所有等位基因发生major和minor突变频率的加权平均值
-        major_frq_mean = np.dot(frequency, admix_ratio)
-        minor_frq_mean = np.dot(1 - frequency, admix_ratio)
+        # 计算用户所有等位基因产生ref和alt突变频率的加权平均值
+        ref_frq_mean = np.dot(frequency, admix_ratio)
+        alt_frq_mean = np.dot(1 - frequency, admix_ratio)
 
-        # 计算用户所有等位基因发生major和minor突变的联合概率，取对数，连乘变连和
-        major_pr = np.dot(
-            major_geno_count, np.log(np.where(major_frq_mean > 0, major_frq_mean, 1))
+        # 计算用户所有等位基因发生ref和alt突变的联合概率，取对数，连乘变连和
+        ref_pr = np.dot(
+            ref_allele_count, np.log(np.where(ref_frq_mean > 0, ref_frq_mean, 1))
         )
-        minor_pr = np.dot(
-            minor_geno_count, np.log(np.where(minor_frq_mean > 0, minor_frq_mean, 1))
+        alt_pr = np.dot(
+            alt_allele_count, np.log(np.where(alt_frq_mean > 0, alt_frq_mean, 1))
         )
 
         # 返回负值作为损失值
-        return -(major_pr + minor_pr)
+        return -(ref_pr + alt_pr)
 
     # 根据用户基因数据，祖源模型，使用极大似然估计计算用户的祖源成分
     def calc_admix(
@@ -94,7 +94,7 @@ class AdmixCalculator:
             raise Exception("祖源模型“{}”没有人群成分".format(admix_model_name))
 
         # 获取指定祖源模型的rsid, alleles数据源
-        rsid, major_geno, minor_geno, frequency = admixModel.get_model_data(
+        rsid, ref_allele, alt_allele, frequency = admixModel.get_model_data(
             admix_model_name
         )
 
@@ -109,8 +109,8 @@ class AdmixCalculator:
             )
 
         # 计算用户基因相对于祖源模型的突变情况
-        major_geno_count, minor_geno_count, user_match_ratio, model_match_ratio = (
-            self.__get_geno_stat(user_genome, rsid, major_geno, minor_geno)
+        ref_allele_count, alt_allele_count, user_match_ratio, model_match_ratio = (
+            self.__get_geno_stat(user_genome, rsid, ref_allele, alt_allele)
         )
 
         # 损失函数的参数初始值
@@ -123,7 +123,7 @@ class AdmixCalculator:
         # 计算用户祖源成分的最优值
         res = optimize.minimize(
             fun=lambda ratio: self.__loss_func(
-                major_geno_count, minor_geno_count, frequency, ratio
+                ref_allele_count, alt_allele_count, frequency, ratio
             ),
             x0=initial_guess,
             bounds=bounds,

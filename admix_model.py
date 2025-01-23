@@ -78,10 +78,10 @@ class AdmixModel:
         if not os.access(frequency_file_name, os.F_OK):
             raise FileNotFoundError("祖源模型SNP频率文件不存在：" + frequency_file_name)
 
-        # 读取SNP的rsid, minor, major突变
+        # 读取SNP的rsid, ref allele, alt allele
         rsid = []
-        minor_geno = []
-        major_geno = []
+        ref_allele = []
+        alt_allele = []
         with open(
             snp_file_name,
             "r",
@@ -89,10 +89,10 @@ class AdmixModel:
             for row in csv.reader(snp_file, delimiter=" "):
                 if len(row) == 3:
                     rsid.append(row[0])
-                    minor_geno.append(row[1])
-                    major_geno.append(row[2])
+                    ref_allele.append(row[1])
+                    alt_allele.append(row[2])
 
-        # 读取SNP major突变频率
+        # 读取ref allele频率
         frequency = []
         with open(
             frequency_file_name,
@@ -104,14 +104,14 @@ class AdmixModel:
         if len(rsid) == 0:
             raise Exception("祖源模型“{}”数据文件中没有数据".format(model_name))
 
-        if not len(rsid) == len(minor_geno) == len(major_geno) == len(frequency):
+        if not len(rsid) == len(ref_allele) == len(alt_allele) == len(frequency):
             raise Exception(
                 "祖源模型“{}”的alleles和frequency数据行数不一致".format(model_name)
             )
 
         return (
             np.array(rsid),
-            np.array(major_geno),
-            np.array(minor_geno),
+            np.array(ref_allele),
+            np.array(alt_allele),
             np.array(frequency),
         )
