@@ -6,6 +6,8 @@ from admix_model import *
 
 # 祖源计算器类
 class AdmixCalculator:
+    def __init__(self):
+        self.admixModel = AdmixModel()
 
     # 计算用户每个alleles等位基因相对于祖源模型的ref和alt基因型的突变总次数
     def __get_geno_stat(
@@ -87,14 +89,13 @@ class AdmixCalculator:
         self, user_genome: dict, admix_model_name: str, opt_tol: float = 1e-4
     ) -> dict:
         # 获取指定的祖源模型信息
-        admixModel = AdmixModel()
-        admix_info = admixModel.get_model_info(admix_model_name)
+        admix_info = self.admixModel.get_model_info(admix_model_name)
         admix_count = len(admix_info["admix"])
         if admix_count < 1:
             raise Exception("祖源模型“{}”没有人群成分".format(admix_model_name))
 
         # 获取指定祖源模型的rsid, alleles数据源
-        rsid, ref_allele, alt_allele, frequency = admixModel.get_model_data(
+        rsid, ref_allele, alt_allele, frequency = self.admixModel.get_model_data(
             admix_model_name
         )
 
