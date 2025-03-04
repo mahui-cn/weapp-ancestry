@@ -14,7 +14,7 @@ def make_pie(pie_x, pie_label, file_format="png"):
 
     # plot
     fig, ax = plt.subplots()
-    ax.pie(
+    wedges, texts, autotexts = ax.pie(
         x=pie_x,
         labels=pie_label,
         colors=colors,
@@ -27,6 +27,10 @@ def make_pie(pie_x, pie_label, file_format="png"):
     )
 
     ax.set(xlim=(0, 8), xticks=np.arange(1, 8), ylim=(0, 8), yticks=np.arange(1, 8))
+
+    plt.legend(
+        wedges, pie_label, title="", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1)
+    )
 
     # 返回图片的base64编码的字符串
     image_buf = io.BytesIO()

@@ -69,12 +69,12 @@ try:
 
     # 输出HTML
     result = []
-    if pie_base64 != None:
-        result.append(
-            "<img src='data:image/{};base64,{}' class='img-thumbnail mx-auto d-block'/>".format(
-                "png", pie_base64
-            )
-        )
+    # if pie_base64 != None:
+    #     result.append(
+    #         "<img src='data:image/{};base64,{}' class='img-thumbnail mx-auto d-block'/>".format(
+    #             "png", pie_base64
+    #         )
+    #     )
     result.append("<div class='table-responsive'>")
     result.append("<table class='table'>")
     result.append("<thead><tr><th>祖源成分</th><th>比例</th></tr></thead>")
